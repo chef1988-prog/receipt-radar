@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#f6f3ec">
+<title>Receipt Radar</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <h1 id="title">Receipt Radar</h1>
+    <button id="btn-settings" class="icon-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.4 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4-2-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+    </button>
+  </header>
+  <main id="main"></main>
+  <nav id="tabs">
+    <button data-tab="home" class="active"><svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
+    <button data-tab="receipts"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21zM9 8h6M9 12h6M9 16h4"/></svg><span>Receipts</span></button>
+    <button id="tab-scan" aria-label="Scan receipt"><svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg></button>
+    <button data-tab="prices"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z M7.5 8.5h.01"/></svg><span>Prices</span></button>
+    <button data-tab="spending"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Spending</span></button>
+  </nav>
+</div>
+<div id="overlay"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
+<input type="file" id="in-gallery" accept="image/*" hidden>
+<input type="file" id="in-restore" accept="application/json,.json,text/plain" hidden>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
