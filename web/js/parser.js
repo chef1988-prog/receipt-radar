@@ -220,16 +220,21 @@ export function parseReceipt(text, opts = {}) {
     const n = info.n;
     if (!n) continue;
     if (/^[-=_*. ]+$/.test(info.text)) continue;
-    const isTotal = hasKeyword(n, TOTAL_KW) && !/zwischen|subtot|sub tot/.test(n);
-    if (isTotal) {
-      if (info.price != null && events.some(e => e.type === 'item')) { total = Math.abs(info.price); totalIdx = i; break; }
-      // total keyword without price: price may be on next line
-      if (info.price == null && events.some(e => e.type === 'item')) {
+    const isTotal = hasKeyword(n, TOTAL_KW) && !/zwischen|subtot|sub tot/.test(n) && !/\b(tomate|tomaten|tomat|potato|patate)\b/.test(n);
+    if (isTotal && events.some(e => e.type === 'item')) {
+      // sanity check: a real total is at least as large as the biggest item and close to (or above) the running sum
+      const its = events.filter(e => e.type === 'item');
+      const run = events.reduce((a, e) => a + (e.type === 'item' ? e.price : e.type === 'discount' ? e.amount : 0), 0);
+      const maxItem = Math.max(...its.map(e => e.price));
+      const plausible = (v) => v >= maxItem - 0.01 && v >= run * 0.6 - 0.01;
+      if (info.price != null && plausible(Math.abs(info.price))) { total = Math.abs(info.price); totalIdx = i; break; }
+      if (info.price == null) {
         const nx = rawLines[i + 1] ? parseLine(rawLines[i + 1]) : null;
-        if (nx && nx.price != null && letters(nx.name) < 4) { total = Math.abs(nx.price); totalIdx = i; break; }
+        if (nx && nx.price != null && letters(nx.name) < 4 && plausible(Math.abs(nx.price))) { total = Math.abs(nx.price); totalIdx = i; break; }
+        continue;
       }
-      continue;
-    }
+      // implausible "total" (e.g. OCR noise resembling the keyword) -> treat as a normal line below
+    } else if (isTotal && info.price == null) continue;
     if (info.qty) { events.push({ type: 'qty', ...info.qty, i }); continue; }
     if (info.price != null) {
       const nn = norm(info.name);
@@ -295,15 +300,17 @@ export function parseReceipt(text, opts = {}) {
 
   // If no total keyword was recognised, detect a line equal to the running sum
   if (total == null) {
-    let run = 0;
+    // No total line recognised: look for a line whose price equals the sum of everything above it.
+    // Take the LAST such line (an early coincidence on a long receipt must not cut it short).
+    let run = 0, cut = -1, maxSoFar = 0;
     for (let k = 0; k < items.length; k++) {
       const repeat = k >= 1 && norm(items[k].name) === norm(items[k - 1].name);
-      const totalish = /tot|summ|zahl|import|betrag|pagat/.test(norm(items[k].name));
-      if (k >= 1 && near(items[k].price, r2(run)) && !repeat && (k >= 2 || totalish || letters(items[k].name) <= 4)) {
-        total = items[k].price; items.splice(k); break;
-      }
+      const totalish = /tot|summ|zahl|import|betrag|pagat|eur/.test(norm(items[k].name));
+      if (k >= 1 && near(items[k].price, r2(run)) && !repeat && items[k].price >= maxSoFar - 0.01 && (k >= 2 || totalish || letters(items[k].name) <= 4)) cut = k;
       run += items[k].price + items[k].discount;
+      maxSoFar = Math.max(maxSoFar, items[k].price);
     }
+    if (cut >= 0) { total = items[cut].price; items.splice(cut); }
   }
 
   const out = items.map(it => ({

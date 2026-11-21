@@ -353,7 +353,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String version() {
-            return "1.1.0";
+            return "1.1.1";
         }
 
         /** Runs Google ML Kit text recognition on a JPEG data URL; result comes back via window.__nativeOcrDone(id, json, error). */

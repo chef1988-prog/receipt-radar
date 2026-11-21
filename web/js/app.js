@@ -4,7 +4,7 @@ import * as OCR from './ocr.js';
 import * as DB from './db.js';
 import * as C from './catalog.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 let state = DB.emptyState();
 let tab = 'home';
 const pages = [];          // overlay page stack: {render, mount?, onBack?}
