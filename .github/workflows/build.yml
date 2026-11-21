@@ -4,6 +4,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +25,14 @@ jobs:
         run: |
           V=$(grep versionName app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
           cp app/build/outputs/apk/release/app-release.apk "ReceiptRadar-$V.apk"
+          echo "VERSION=$V" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
           name: ReceiptRadar-apk
           path: ReceiptRadar-*.apk
+      - name: Publish as GitHub release (direct APK download link)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${VERSION}-build${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" "ReceiptRadar-${VERSION}.apk" --title "Receipt Radar ${VERSION} (build ${GITHUB_RUN_NUMBER})" --notes "Install the APK on your phone. Updates install over the previous version and keep your data." --latest
