@@ -10,8 +10,8 @@ android {
         applicationId = "app.receiptradar"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.1"
+        versionCode = 5
+        versionName = "1.2.0"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 

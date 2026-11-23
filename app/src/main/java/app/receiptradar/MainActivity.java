@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.Base64;
 import android.net.Uri;
@@ -212,6 +213,13 @@ public class MainActivity extends Activity {
         return a;
     }
 
+    private static JSONArray corners(Point[] pts) throws Exception {
+        if (pts == null || pts.length != 4) return null;
+        JSONArray a = new JSONArray();
+        for (Point p : pts) { a.put(p.x); a.put(p.y); }
+        return a;
+    }
+
     private static String textToJson(Text text) throws Exception {
         JSONObject root = new JSONObject();
         root.put("text", text.getText());
@@ -222,6 +230,8 @@ public class MainActivity extends Activity {
                 lo.put("t", l.getText());
                 lo.put("c", (double) l.getConfidence());
                 lo.put("b", box(l.getBoundingBox()));
+                JSONArray lp = corners(l.getCornerPoints());
+                if (lp != null) lo.put("p", lp);
                 JSONArray words = new JSONArray();
                 for (Text.Element e : l.getElements()) {
                     JSONObject w = new JSONObject();
@@ -353,7 +363,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String version() {
-            return "1.1.1";
+            return "1.2.0";
         }
 
         /** Runs Google ML Kit text recognition on a JPEG data URL; result comes back via window.__nativeOcrDone(id, json, error). */

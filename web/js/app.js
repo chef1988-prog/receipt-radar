@@ -4,7 +4,7 @@ import * as OCR from './ocr.js';
 import * as DB from './db.js';
 import * as C from './catalog.js';
 
-const VERSION = '1.1.1';
+const VERSION = '1.2.0';
 let state = DB.emptyState();
 let tab = 'home';
 const pages = [];          // overlay page stack: {render, mount?, onBack?}
@@ -648,6 +648,12 @@ function openEditor(draft, isNew) {
         });
         $('[data-unit]', card).onclick = () => { it.unit = it.unit === 'kg' ? 'pc' : 'kg'; it.unitPrice = null; dirty = true; refreshTop(); };
         $('[data-del]', card).onclick = () => { draft.items.splice(i, 1); dirty = true; refreshTop(); };
+        $('[data-shift]', card).onclick = () => {
+          modal(`<h3>Prices on the wrong lines?</h3><p class="muted small">Moves the price of “${esc(it.name || 'this item')}” and of every item below it by one line. Names stay where they are.</p>
+            <div class="menu"><button data-dir="up">↑ Move prices up one line</button><button data-dir="down">↓ Move prices down one line</button></div>`, {
+            onMount: (m, close) => $$('[data-dir]', m).forEach(b => b.onclick = () => { close(); shiftPrices(draft, i, b.dataset.dir === 'up' ? -1 : 1); dirty = true; refreshTop(); }),
+          });
+        };
         $('[data-link]', card).onclick = () => pickProduct(it.name, (pid) => { it.productId = pid; it.match = pid ? 'linked' : null; if (pid) it.category = state.products[pid].category; dirty = true; refreshTop(); });
         $('[data-icat]', card).onclick = () => pickCategory(it.category, (c) => { it.category = c; dirty = true; refreshTop(); });
         const disc = $('[data-showdisc]', card); if (disc) disc.onclick = () => { it.discount = it.discount || 0; it._showDisc = true; refreshTop(); };
@@ -682,7 +688,7 @@ function itemCard(it, i) {
   const linkLabel = p ? `${it.match === 'fuzzy' ? '≈ ' : '↔ '}${esc(p.name)}` : '+ New product';
   const c = catOf(it.category);
   return `<div class="item card ${it.flag ? 'flag' : ''}" data-i="${i}">
-    <div class="row gap"><input class="input grow name-in" data-f="name" value="${esc(it.name)}" placeholder="Item name"><button class="icon-btn sm" data-del aria-label="Remove item">✕</button></div>
+    <div class="row gap"><input class="input grow name-in" data-f="name" value="${esc(it.name)}" placeholder="Item name"><button class="icon-btn sm" data-shift aria-label="Fix price alignment" title="Prices on wrong lines?">⇅</button><button class="icon-btn sm" data-del aria-label="Remove item">✕</button></div>
     <div class="row gap mt8 nums">
       <div class="qty"><label class="lbl">${it.unit === 'kg' ? 'Weight' : 'Qty'}</label><div class="row"><input class="input mono" data-f="qty" inputmode="decimal" value="${esc(it.unit === 'kg' ? num(it.qty, 3) : num(it.qty, Number.isInteger(+it.qty) ? 0 : 2))}"><button class="unit-btn" data-unit>${it.unit === 'kg' ? 'kg' : 'pc'}</button></div></div>
       <div class="grow"><label class="lbl">Price</label><input class="input mono" data-f="price" inputmode="decimal" value="${esc(num(it.price))}"></div>
@@ -695,6 +701,22 @@ function itemCard(it, i) {
     </div>
     ${it.flag ? `<div class="flag-note">${esc(it.flag)}</div>` : ''}
   </div>`;
+}
+
+// Move price data (price, qty, unit, discount) of items[from..] one line up (dir -1) or down (dir 1)
+function shiftPrices(draft, from, dir) {
+  const F = ['price', 'qty', 'unit', 'unitPrice', 'discount'];
+  const its = draft.items, n = its.length;
+  const take = (it) => Object.fromEntries(F.map(f => [f, it[f]]));
+  const empty = { price: 0, qty: 1, unit: 'pc', unitPrice: null, discount: 0 };
+  if (dir < 0) {
+    if (from === 0) return;
+    for (let k = from; k < n; k++) Object.assign(its[k - 1], take(its[k]));
+    Object.assign(its[n - 1], empty); its[n - 1].flag = 'Price missing after moving prices. Enter it or remove this line.';
+  } else {
+    for (let k = n - 1; k > from; k--) Object.assign(its[k], take(its[k - 1]));
+    Object.assign(its[from], empty); its[from].flag = 'Price missing after moving prices. Enter it or remove this line.';
+  }
 }
 
 function gcProducts() {

@@ -1,3 +1,5 @@
+import { groupWords, groupSegments } from './layout.js';
+export { groupWords };
 // OCR: Google ML Kit (native, inside the Android app) or tesseract.js (desktop browser testing only).
 /* global Tesseract */
 
@@ -60,35 +62,6 @@ function linesFromWords(data) {
   return groupWords(words);
 }
 
-export function groupWords(words) {
-  if (!words.length) return null;
-  const hs = words.map(w => w.y1 - w.y0).sort((a, b) => a - b);
-  const mh = hs[Math.floor(hs.length / 2)] || 20;
-  words.sort((a, b) => (a.y0 + a.y1) / 2 - (b.y0 + b.y1) / 2);
-  const lines = [];
-  for (const w of words) {
-    const cy = (w.y0 + w.y1) / 2;
-    let best = null, bd = 1e9;
-    for (let i = Math.max(0, lines.length - 4); i < lines.length; i++) {
-      const L = lines[i]; const d = Math.abs(L.cy - cy);
-      if (d < mh * 0.55 && d < bd && !L.words.some(o => o.x0 < w.x1 && w.x0 < o.x1)) { best = L; bd = d; }
-    }
-    if (best) { best.words.push(w); best.cy = (best.cy * (best.words.length - 1) + cy) / best.words.length; }
-    else lines.push({ cy, words: [w] });
-  }
-  lines.sort((a, b) => a.cy - b.cy);
-  const cw = mh * 0.55;
-  return lines.map(L => {
-    L.words.sort((a, b) => a.x0 - b.x0);
-    let s = '', prev = null;
-    for (const w of L.words) {
-      if (prev) { const gap = w.x0 - prev.x1; s += gap > cw * 3 ? '     ' : ' '; }
-      s += w.t; prev = w;
-    }
-    return s;
-  }).join('\n');
-}
-
 async function recognizeNative(canvas, onProgress) {
   if (onProgress) onProgress({ status: 'recognizing text', progress: 0.3 });
   const id = Math.random().toString(36).slice(2);
@@ -97,14 +70,9 @@ async function recognizeNative(canvas, onProgress) {
     window.AndroidBridge.ocr(id, canvas.toDataURL('image/jpeg', 0.95));
   });
   if (onProgress) onProgress({ status: 'recognizing text', progress: 1 });
-  const words = [];
   let csum = 0, cn = 0;
-  for (const l of res.lines || []) {
-    if (l.c > 0) { csum += l.c * (l.t || '').length; cn += (l.t || '').length; }
-    const ws = (l.w && l.w.length) ? l.w : [{ t: l.t, b: l.b, c: l.c }];
-    for (const w of ws) if (w.t && w.t.trim()) words.push({ t: w.t, x0: w.b[0], y0: w.b[1], x1: w.b[2], y1: w.b[3], c: w.c });
-  }
-  const text = groupWords(words) || res.text || '';
+  for (const l of res.lines || []) if (l.c > 0) { csum += l.c * (l.t || '').length; cn += (l.t || '').length; }
+  const text = groupSegments(res.lines || []) || res.text || '';
   return { text, rawText: res.text || '', confidence: cn ? (csum / cn) * 100 : null };
 }
 
